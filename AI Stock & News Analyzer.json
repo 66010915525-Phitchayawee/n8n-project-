@@ -1,0 +1,205 @@
+{
+  "name": "AI Stock & News Analyzer",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "ab13e52a-ebd9-476a-8ac0-21dbd383b5ce",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://finnhub.io/api/v1/quote?symbol=AAPL&token=d3h2br9r01qpep68qnmgd3h2br9r01qpep68qnn0",
+        "options": {}
+      },
+      "id": "1d26e2e1-d32b-4d01-b140-06d6b922b653",
+      "name": "Get Stock Price (Finnhub)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://finnhub.io/api/v1/news?category=general&token=d3h2br9r01qpep68qnmgd3h2br9r01qpep68qnn0",
+        "options": {}
+      },
+      "id": "f751fa31-0e43-4ddf-bb1c-f6813f530793",
+      "name": "Get Stock News (Finnhub)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        0,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javascript",
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "id": "d2316dff-a6f8-4b52-81bf-b71d4d108041",
+      "name": "Calculate MA14",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-pro",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-pro"
+        },
+        "text": "=คุณคือผู้ช่วยในการคัดกรองข่าวเศรษฐกิจที่มีผลกระทบต่อการเปลี่ยนแปลงของอัตราหุ้น ช่วยฉันสรุปข่าวเศรษฐกิจ บอกมาtop5ของวันนั้น เอาที่โดดเ่นที่สุด บอกราคา อัตราการเพิ่มขึ้นหรือลดลง กรุณา บอกทีละตัว มีแหล่งที่มาของข่าวที่ชัดเจน วันที่เดือนปี เวลาตามเวลาตลาดเปิดปิดล่วงหน้า2 ชั่วโมง ราคา อัตราการเปลี่ยนแปลง จากแหล่งที่น่าเชื่อถือ และเป็นข้อมูลในวันที่ 5 ตุลาคม 2025 ในปี2025 ทั้งในไทยและต่างประเทศ ให้แต่ละข่าวแยกกันโดยสิ้นเชิงและ แบ่งให้แต่ละข่าวห่างกัน 4-5 บรรทัด เอาเฉพาะข่าวไม่เอาคำพูดของคุณ\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        688,
+        64
+      ],
+      "id": "56960156-e7dd-428c-9e3a-4d5336b7c0e5",
+      "name": "Analyze document",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "likltBMgmeksZNmD",
+          "name": "Google Gemini(PaLM) Api account 4"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        480,
+        64
+      ],
+      "id": "ee568863-d618-46a6-b9a9-55fae7bb198a",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "sendTo": "66010915525@msu.ac.th",
+        "subject": "รายงานการวิเคราะห์ข่าวหุ้นประจำวัน",
+        "message": "={{ $json.content.parts[0].text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        896,
+        64
+      ],
+      "id": "44dc979e-a496-4627-b441-f5408805cd17",
+      "name": "Send a message",
+      "webhookId": "ee8efe5a-d3a5-47d3-be19-e8c69442c4a2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "BycLzbsNT6HYf8kL",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Stock Price (Finnhub)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Stock News (Finnhub)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Stock Price (Finnhub)": {
+      "main": [
+        [
+          {
+            "node": "Calculate MA14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate MA14": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Stock News (Finnhub)": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze document": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Analyze document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8e4e65d4-9a20-4e76-a135-5f7ed66c6d8e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4651036bd9bfba077c9835edce8000a23d68e8b8a6efb826be193662c64c82fd"
+  },
+  "id": "qZmPYOUGiy5yk1w2",
+  "tags": []
+}
